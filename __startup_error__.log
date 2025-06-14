@@ -1,0 +1,73 @@
+2025-06-14 01:11:36.272847 - CRITICAL STARTUP ERROR: name 'ctk' is not defined
+Traceback (most recent call last):
+  File "C:\Users\freax\OneDrive\Desktop\tiktok_analytics\tiktok_post_analytics.py", line 65, in <module>
+    app = TikTokScraperApp(root_tk_window)
+  File "C:\Users\freax\OneDrive\Desktop\tiktok_analytics\ui.py", line 213, in __init__
+    ctk.set_appearance_mode("Light")
+    ^^^
+NameError: name 'ctk' is not defined. Did you mean: 'tk'?
+
+2025-06-14 01:11:42.159346 - CRITICAL STARTUP ERROR: name 'ctk' is not defined
+Traceback (most recent call last):
+  File "C:\Users\freax\OneDrive\Desktop\tiktok_analytics\tiktok_post_analytics.py", line 65, in <module>
+    app = TikTokScraperApp(root_tk_window)
+  File "C:\Users\freax\OneDrive\Desktop\tiktok_analytics\ui.py", line 213, in __init__
+    ctk.set_appearance_mode("Light")
+    ^^^
+NameError: name 'ctk' is not defined. Did you mean: 'tk'?
+
+2025-06-14 01:12:01.807912 - CRITICAL STARTUP ERROR: name 'ctk' is not defined
+Traceback (most recent call last):
+  File "C:\Users\freax\OneDrive\Desktop\tiktok_analytics\tiktok_post_analytics.py", line 65, in <module>
+    app = TikTokScraperApp(root_tk_window)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\freax\OneDrive\Desktop\tiktok_analytics\ui.py", line 213, in __init__
+    ctk.set_appearance_mode("Light")
+    ^^^
+NameError: name 'ctk' is not defined
+
+2025-06-14 01:13:11.122102 - CRITICAL STARTUP ERROR: name 'messagebox' is not defined
+Traceback (most recent call last):
+  File "C:\Users\freax\OneDrive\Desktop\tiktok_analytics\tiktok_post_analytics.py", line 93, in <module>
+    messagebox.showinfo("TikTok Browser Session",
+    ^^^^^^^^^^
+NameError: name 'messagebox' is not defined
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\freax\OneDrive\Desktop\tiktok_analytics\tiktok_post_analytics.py", line 102, in <module>
+    messagebox.showerror("Browser Launch Error",
+    ^^^^^^^^^^
+NameError: name 'messagebox' is not defined
+
+2025-06-14 01:13:18.246530 - CRITICAL STARTUP ERROR: name 'messagebox' is not defined
+Traceback (most recent call last):
+  File "C:\Users\freax\OneDrive\Desktop\tiktok_analytics\tiktok_post_analytics.py", line 93, in <module>
+    messagebox.showinfo("TikTok Browser Session",
+    ^^^^^^^^^^
+NameError: name 'messagebox' is not defined
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\freax\OneDrive\Desktop\tiktok_analytics\tiktok_post_analytics.py", line 102, in <module>
+    messagebox.showerror("Browser Launch Error",
+    ^^^^^^^^^^
+NameError: name 'messagebox' is not defined
+
+2025-06-14 01:14:34.908511 - CRITICAL STARTUP ERROR: name 'messagebox' is not defined
+Traceback (most recent call last):
+  File "C:\Users\freax\OneDrive\Desktop\tiktok_analytics\tiktok_post_analytics.py", line 93, in <module>
+    messagebox.showinfo("TikTok Browser Session",
+    ^^^^^^^^^^
+NameError: name 'messagebox' is not defined
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\freax\OneDrive\Desktop\tiktok_analytics\tiktok_post_analytics.py", line 102, in <module>
+    messagebox.showerror("Browser Launch Error",
+    ^^^^^^^^^^
+NameError: name 'messagebox' is not defined
+
