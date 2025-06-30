@@ -11,19 +11,13 @@ import re
 import json
 import shutil
 import sys
+import random # Added for random delays
 
 import customtkinter as ctk
 
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException, ElementClickInterceptedException
-
 # Corrected: Import TikTok-specific directories and functions
-from scraper import scrape_post_data, get_tiktok_video_id_from_url, TIKTOK_SESSION_DATA_DIR, TIKTOK_BROWSER_USER_DATA_DIR, CHROMEDRIVER_EXECUTABLE_PATH, CHROME_BINARY_LOCATION
+# No longer importing specific selenium classes directly here, as scraper handles driver init.
+from scraper import scrape_post_data, get_tiktok_video_id_from_url, TIKTOK_SESSION_DATA_DIR, TIKTOK_BROWSER_USER_DATA_DIR
 # Corrected: Import TikTok-specific DB functions and file
 from database import setup_database, DB_FILE, load_data_from_db, save_to_database, delete_data_from_db
 
@@ -51,7 +45,7 @@ custom_theme_dict = {
         "corner_radius": 5,
     },
     "CTkLabel": {
-        "text_color": ["#333333", "#333333"],
+        "text_color": ["#333333", "##333333"],
         "fg_color": ["transparent", "transparent"],
         "corner_radius": 0,
     },
@@ -234,7 +228,6 @@ class TikTokScraperApp: # Renamed class
 
 
         self.scraped_data_for_table = [] # Stores data as list of dicts
-        # self.manual_login_driver = None  # Initialize to None (still useful if manual browser interaction is needed)
         
         # Initialize sorting state
         self.sort_column = None
@@ -243,7 +236,6 @@ class TikTokScraperApp: # Renamed class
         self._setup_ui()
         
         # Initial status for TikTok app (no explicit Instaloader login)
-        # This will effectively always be "Not logged in." which is fine for TikTok
         self.set_status("Ready. TikTok scraping relies on persistent browser data (no explicit login needed).")
             
         self._load_data_from_db_into_ui()
@@ -258,9 +250,6 @@ class TikTokScraperApp: # Renamed class
 
 
     def _on_closing(self):
-        # The manual_login_driver is now managed by tiktok_post_analytics.py directly
-        # and will be quit on app exit from there. No need for self.manual_login_driver here.
-        
         if messagebox.askyesno("Exit", "Are you sure you want to exit?", parent=self.root):
             logging.info("Application exiting by user confirmation.")
             self.root.destroy()
@@ -351,10 +340,6 @@ class TikTokScraperApp: # Renamed class
     def _setup_ui(self):
         main_frame = ctk.CTkFrame(self.root, fg_color="transparent") 
         main_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=10) 
-
-        # Removed top_right_frame and its contents as per previous request
-        # No username label, no logout button, no clear browser data button here.
-
 
         table_frame = ctk.CTkFrame(main_frame, fg_color="transparent") 
         table_frame.pack(expand=True, fill=tk.BOTH, padx=5, pady=(0, 5)) # Adjusted pady for compact layout
@@ -463,6 +448,13 @@ class TikTokScraperApp: # Renamed class
         )
         self.export_button.pack(side=tk.LEFT, padx=5)
 
+        # New button for clearing browser data
+        self.clear_browser_data_button = ctk.CTkButton(
+            other_buttons_frame, text="Clear Browser Data", command=self.clear_browser_data
+        )
+        self.clear_browser_data_button.pack(side=tk.LEFT, padx=5)
+
+
         self.tree.bind("<Button-3>", self._show_context_menu)
 
 
@@ -550,7 +542,7 @@ class TikTokScraperApp: # Renamed class
         logging.info(f"Record button pressed for URL: {post_url}")
 
         thread = threading.Thread(
-            target=self._run_tiktok_scrape_in_thread, args=(post_url, False) # Removed logged_in_username
+            target=self._run_tiktok_scrape_in_thread, args=(post_url, False)
         )
         thread.daemon = True
         thread.start()
@@ -671,6 +663,28 @@ class TikTokScraperApp: # Renamed class
                     return data_entry
         return None
 
+    def clear_browser_data(self):
+        """
+        Clears the TikTok browser user data directory, effectively logging out and
+        resetting the browser profile.
+        """
+        if messagebox.askyesno("Clear Browser Data", 
+                               "This will clear all TikTok browser data (cookies, cache, login sessions).\n"
+                               "If TikTok data requires login, you will need to re-establish a session manually by temporarily disabling headless mode in scraper.py and logging in.\n\n"
+                               "Are you sure you want to proceed?", parent=self.root):
+            try:
+                if os.path.exists(TIKTOK_BROWSER_USER_DATA_DIR):
+                    shutil.rmtree(TIKTOK_BROWSER_USER_DATA_DIR)
+                    os.makedirs(TIKTOK_BROWSER_USER_DATA_DIR) # Recreate empty directory
+                    self.set_status("TikTok browser data cleared. If login is required, re-establish manually.")
+                    logging.info("TikTok browser user data cleared.")
+                else:
+                    self.set_status("TikTok browser data directory not found, nothing to clear.")
+                    logging.warning("Attempted to clear non-existent TikTok browser data directory.")
+            except Exception as e:
+                self.set_status(f"Error clearing browser data: {e}")
+                logging.error(f"Error clearing TikTok browser data: {e}", exc_info=True)
+
 
     def _run_batch_scrape_in_thread(self, filepath=None, urls_to_scrape_list=None):
         urls_to_scrape = []
@@ -726,10 +740,11 @@ class TikTokScraperApp: # Renamed class
             logging.info(f"Batch: Processing URL {i+1}/{len(urls_to_scrape)}: {url}")
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            # Pass app_instance to scraper, no logged_in_username for TikTok
             scraped_data_dict = loop.run_until_complete(scrape_post_data(url, self)) 
             loop.close()
             self._handle_scrape_result(scraped_data_dict, url) 
+            # Introduce a random delay between scrapes to reduce bot detection
+            time.sleep(random.uniform(3, 8)) # Sleep between 3 and 8 seconds
 
         self.set_status_from_thread(f"Batch scrape complete. Processed {len(urls_to_scrape)} URLs.")
         logging.info("Batch scrape successfully completed.")
@@ -744,7 +759,6 @@ class TikTokScraperApp: # Renamed class
         try:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            # Pass app_instance, no logged_in_username for TikTok
             scraped_data_dict = loop.run_until_complete(scrape_post_data(post_url, self)) 
         except Exception as e:
             logging.error(f"Error in single scrape thread execution for {post_url}: {e}", exc_info=True)
@@ -840,7 +854,7 @@ class TikTokScraperApp: # Renamed class
         self.update_selected_button.configure(state=state)
         self.delete_selected_button.configure(state=state)
         self.export_button.configure(state=state)
-        # self.clear_browser_data_button.configure(state=state) # Control new button
+        self.clear_browser_data_button.configure(state=state) # Control new button
 
     def _refresh_table_display(self):
         for item in self.tree.get_children():
