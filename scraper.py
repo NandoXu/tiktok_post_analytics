@@ -308,21 +308,21 @@ async def scrape_post_data(url: str, app_instance=None):
             browser, context, page = await _launch_browser_session(p_instance, headless_mode=False, url=clean_url)
 
             logging.info("Browser is visible. Please solve any CAPTCHA manually. Script will wait for 120 seconds.")
-            if app_instance and hasattr(app_instance, 'update_status'):
-                 app_instance.update_status("CAPTCHA detected! Please solve in browser. Waiting 120s...")
+            if app_instance and hasattr(app_instance, 'set_status'): # Changed to set_status
+                 app_instance.set_status("CAPTCHA detected! Please solve in browser. Waiting 120s...")
             await asyncio.sleep(120)
             logging.info("Continuing after CAPTCHA wait...")
 
             if await is_captcha_present(page):
                 data["error"] += " CAPTCHA still present after manual intervention time."
                 logging.error(data["error"])
-                if app_instance and hasattr(app_instance, 'update_status'):
-                     app_instance.update_status("CAPTCHA still present. Scraping failed.")
+                if app_instance and hasattr(app_instance, 'set_status'): # Changed to set_status
+                     app_instance.set_status("CAPTCHA still present. Scraping failed.")
                 return data
 
             logging.info("CAPTCHA appears to be solved. Resuming scraping.")
-            if app_instance and hasattr(app_instance, 'update_status'):
-                 app_instance.update_status("CAPTCHA solved. Resuming scraping.")
+            if app_instance and hasattr(app_instance, 'set_status'): # Changed to set_status
+                 app_instance.set_status("CAPTCHA solved. Resuming scraping.")
         
         # --- Direct scraping logic (after initial launch or after CAPTCHA handling) ---
         
@@ -385,14 +385,17 @@ async def scrape_post_data(url: str, app_instance=None):
                 raw_text = raw_text.strip()
                 post_date_dt = None
                 try:
-                    if re.match(r'^\d{1,2}-\d{1,2}$', raw_text): # e.g., 3-18
+                    # Attempt to parse as a full date first (e.g., "2023-03-18")
+                    if re.match(r'^\d{4}-\d{2}-\d{2}$', raw_text):
+                        post_date_dt = parse_date(raw_text)
+                    # Then try relative dates (e.g., "2 hours ago")
+                    elif 'ago' in raw_text.lower():
+                        post_date_dt = parse_relative_time(raw_text)
+                    # Then try month-day format (e.g., "3-18")
+                    elif re.match(r'^\d{1,2}-\d{1,2}$', raw_text):
                         year = datetime.now().year
                         post_date_dt = parse_date(f"{year}-{raw_text}", fuzzy=True)
-                    elif re.match(r'^\d{4}-\d{1,2}-\d{1,2}$', raw_text): # e.g., 2023-03-18
-                        post_date_dt = parse_date(raw_text)
-                    elif 'ago' in raw_text.lower(): # e.g., "2 hours ago"
-                        post_date_dt = parse_relative_time(raw_text)
-                    else: # Attempt general parsing
+                    else: # Fallback to general parsing
                         post_date_dt = parse_date(raw_text, fuzzy=True)
                     
                     if post_date_dt:
@@ -440,8 +443,8 @@ async def scrape_post_data(url: str, app_instance=None):
                     # Launch new browser in HEADED mode for re-attempting grid scrape
                     browser, context, page = await _launch_browser_session(p_instance, headless_mode=False, url=profile_url)
                     logging.info("Browser is visible to re-attempt grid scrape (for views) after timeout.")
-                    if app_instance and hasattr(app_instance, 'update_status'):
-                         app_instance.update_status("Grid scrape for views timed out! Browser visible. Re-attempting grid scrape...")
+                    if app_instance and hasattr(app_instance, 'set_status'): # Changed to set_status
+                         app_instance.set_status("Grid scrape for views timed out! Browser visible. Re-attempting grid scrape...")
                     
                     # --- Second attempt at grid scrape in HEADED mode ---
                     try:
@@ -450,31 +453,31 @@ async def scrape_post_data(url: str, app_instance=None):
                         if grid_views_headed_only is not None:
                             data["views"] = grid_views_headed_only
                             logging.info(f"Views obtained from headed grid re-attempt: {data['views']}")
-                            if app_instance and hasattr(app_instance, 'update_status'):
-                                app_instance.update_status("Grid scrape for views successful in headed mode.")
+                            if app_instance and hasattr(app_instance, 'set_status'): # Changed to set_status
+                                app_instance.set_status("Grid scrape for views successful in headed mode.")
                             # CRITICAL FIX: Clear the error if the re-scrape was successful
                             data["error"] = None # Clear any previous grid timeout error
                         else:
                             logging.warning("Grid scrape for views in headed mode still failed to get data.")
                             data["error"] += " Headed grid scrape for views did not retrieve data."
-                            if app_instance and hasattr(app_instance, 'update_status'):
-                                app_instance.update_status("Headed grid scrape for views incomplete. Browser visible for 30s observation.")
+                            if app_instance and hasattr(app_instance, 'set_status'): # Changed to set_status
+                                app_instance.set_status("Headed grid scrape for views incomplete. Browser visible for 30s observation.")
                             await asyncio.sleep(30)
                             return data
 
                     except GridTimeoutError as final_gte:
                         logging.warning(f"Grid scrape for views timed out again in headed mode: {final_gte}. Observing for 30 seconds.")
                         data["error"] += f" Headed grid scrape for views also timed out: {final_gte}. Observing."
-                        if app_instance and hasattr(app_instance, 'update_status'):
-                             app_instance.update_status("Headed grid scrape for views timed out! Browser visible for 30s observation.")
+                        if app_instance and hasattr(app_instance, 'set_status'): # Changed to set_status
+                             app_instance.set_status("Headed grid scrape for views timed out! Browser visible for 30s observation.")
                         await asyncio.sleep(30)
                         return data
 
                     except Exception as e_headed:
                         logging.error(f"Unexpected error during headed grid re-attempt (for views): {e_headed}", exc_info=True)
                         data["error"] += f" Unexpected error during headed grid re-attempt (for views): {e_headed}"
-                        if app_instance and hasattr(app_instance, 'update_status'):
-                             app_instance.update_status("Error during headed grid scrape (for views). Browser visible for 30s observation.")
+                        if app_instance and hasattr(app_instance, 'set_status'): # Changed to set_status
+                             app_instance.set_status("Error during headed grid scrape (for views). Browser visible for 30s observation.")
                         await asyncio.sleep(30)
                         return data
 

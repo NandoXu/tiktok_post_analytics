@@ -255,6 +255,7 @@ class TikTokScraperApp: # Renamed class
             self.root.destroy()
 
     def _load_data_from_db_into_ui(self):
+        if not self.root.winfo_exists(): return # Safety check
         self.set_status("Loading previous records from database...")
         try:
             # Clear in-memory data and treeview before loading from DB
@@ -468,18 +469,22 @@ class TikTokScraperApp: # Renamed class
         Updates the status using a temporary, non-blocking overlay notification.
         """
         logging.info(f"STATUS_UPDATE: {message}")
-        self.root.after(0, lambda: self._show_temp_notification(message))
+        if self.root.winfo_exists(): # Safety check
+            self.root.after(0, lambda: self._show_temp_notification(message))
 
     def set_status_from_thread(self, message):
         """
         Updates the status using a temporary, non-blocking overlay notification from a thread.
         """
-        self.root.after(0, lambda: self._show_temp_notification(message))
+        if self.root.winfo_exists(): # Safety check
+            self.root.after(0, lambda: self._show_temp_notification(message))
 
     def _show_temp_notification(self, message, duration_ms=3000):
         """
         Displays a temporary, non-blocking notification label in the center top.
         """
+        if not self.root.winfo_exists(): return # Safety check
+
         if self._temp_notification_label:
             self._temp_notification_label.destroy()
             if self._temp_notification_after_id:
@@ -500,6 +505,7 @@ class TikTokScraperApp: # Renamed class
 
     def _hide_temp_notification(self):
         """Hides the temporary notification label."""
+        if not self.root.winfo_exists(): return # Safety check
         if self._temp_notification_label:
             self._temp_notification_label.destroy()
             self._temp_notification_label = None
@@ -510,6 +516,7 @@ class TikTokScraperApp: # Renamed class
         """
         Displays a blocking overlay for long-running operations.
         """
+        if not self.root.winfo_exists(): return # Safety check
         if self.overlay:
             return
 
@@ -527,6 +534,7 @@ class TikTokScraperApp: # Renamed class
 
     def _hide_blocking_overlay(self):
         """Hides the blocking overlay."""
+        if not self.root.winfo_exists(): return # Safety check
         if self.overlay:
             self.overlay.destroy()
             self.overlay = None
@@ -627,6 +635,7 @@ class TikTokScraperApp: # Renamed class
         logging.info(f"Deletion initiated for {len(links_to_delete)} posts.")
 
         def delete_task():
+            if not self.root.winfo_exists(): return # Safety check
             try:
                 for link in links_to_delete:
                     # Remove from in-memory list first
@@ -639,13 +648,15 @@ class TikTokScraperApp: # Renamed class
                 self.root.after(0, lambda: self.set_status(f"Error during deletion: {e}"))
                 logging.error(f"Error during deletion: {e}", exc_info=True)
             finally:
-                self.root.after(0, self._set_buttons_state, tk.NORMAL)
+                if self.root.winfo_exists(): # Safety check
+                    self.root.after(0, self._set_buttons_state, tk.NORMAL)
         
         self._set_buttons_state(tk.DISABLED)
         threading.Thread(target=delete_task, daemon=True).start()
     
     def _get_item_data_from_tree_selection(self, item_id):
         """Helper to get the full dictionary for a selected treeview item."""
+        if not self.root.winfo_exists(): return None # Safety check
         values = self.tree.item(item_id, 'values')
         if not values:
             return None
@@ -668,6 +679,7 @@ class TikTokScraperApp: # Renamed class
         Clears the TikTok browser user data directory, effectively logging out and
         resetting the browser profile.
         """
+        if not self.root.winfo_exists(): return # Safety check
         if messagebox.askyesno("Clear Browser Data", 
                                "This will clear all TikTok browser data (cookies, cache, login sessions).\n"
                                "If TikTok data requires login, you will need to re-establish a session manually by temporarily disabling headless mode in scraper.py and logging in.\n\n"
@@ -707,29 +719,33 @@ class TikTokScraperApp: # Renamed class
                 self.set_status_from_thread(f"Error: CSV file not found at {filepath}")
                 logging.error(f"CSV file not found: {filepath}", exc_info=True)
                 self.is_batch_scraping = False
-                self._set_buttons_state(tk.NORMAL)
-                self._hide_blocking_overlay()
+                if self.root.winfo_exists():
+                    self._set_buttons_state(tk.NORMAL)
+                    self._hide_blocking_overlay()
                 return
             except Exception as e:
                 self.set_status_from_thread(f"Error reading CSV file: {e}")
                 logging.error(f"Error reading CSV from {filepath}: {e}", exc_info=True)
                 self.is_batch_scraping = False
-                self._set_buttons_state(tk.NORMAL)
-                self._hide_blocking_overlay()
+                if self.root.winfo_exists():
+                    self._set_buttons_state(tk.NORMAL)
+                    self._hide_blocking_overlay()
                 return
         else:
             self.set_status_from_thread("Error: No URLs provided for batch scrape.")
             self.is_batch_scraping = False
-            self._set_buttons_state(tk.NORMAL)
-            self._hide_blocking_overlay()
+            if self.root.winfo_exists():
+                self._set_buttons_state(tk.NORMAL)
+                self._hide_blocking_overlay()
             return
 
 
         if not urls_to_scrape:
             self.set_status_from_thread(f"No URLs found to scrape from {source_desc}.")
             self.is_batch_scraping = False
-            self._set_buttons_state(tk.NORMAL)
-            self._hide_blocking_overlay()
+            if self.root.winfo_exists():
+                self._set_buttons_state(tk.NORMAL)
+                self._hide_blocking_overlay()
             return
 
         self.set_status_from_thread(f"Starting batch scrape from {source_desc}. Found {len(urls_to_scrape)} URLs...")
@@ -749,8 +765,9 @@ class TikTokScraperApp: # Renamed class
         self.set_status_from_thread(f"Batch scrape complete. Processed {len(urls_to_scrape)} URLs.")
         logging.info("Batch scrape successfully completed.")
         self.is_batch_scraping = False
-        self._set_buttons_state(tk.NORMAL)
-        self._hide_blocking_overlay()
+        if self.root.winfo_exists():
+            self._set_buttons_state(tk.NORMAL)
+            self._hide_blocking_overlay()
 
 
     def _run_tiktok_scrape_in_thread(self, post_url, is_batch=True): # Renamed function
@@ -765,15 +782,18 @@ class TikTokScraperApp: # Renamed class
             scraped_data_dict = {"error": str(e), "url": post_url}
         finally:
             if not is_batch: 
-                self.root.after(
-                    0, lambda data=scraped_data_dict: self._handle_scrape_result(data, post_url) # Renamed handler
-                )
-                self.root.after(0, self._set_buttons_state, tk.NORMAL)
-                self.root.after(0, self._hide_blocking_overlay)
+                if self.root.winfo_exists(): # Safety check
+                    self.root.after(
+                        0, lambda data=scraped_data_dict: self._handle_scrape_result(data, post_url) # Renamed handler
+                    )
+                    self.root.after(0, self._set_buttons_state, tk.NORMAL)
+                    self.root.after(0, self._hide_blocking_overlay)
             if loop and not loop.is_closed():
                 loop.close()
 
     def _handle_scrape_result(self, scraped_data_dict, post_url): # Renamed handler
+        if not self.root.winfo_exists(): return # Safety check
+
         video_id = get_tiktok_video_id_from_url(post_url) or "unknown_post" # Changed to video_id
         current_timestamp_str = datetime.now().strftime("%Y-%m-%d") 
 
@@ -849,6 +869,7 @@ class TikTokScraperApp: # Renamed class
         self.root.after(0, self._refresh_table_display)
 
     def _set_buttons_state(self, state):
+        if not self.root.winfo_exists(): return # Safety check
         self.scrape_button.configure(state=state)
         self.batch_scrape_button.configure(state=state)
         self.update_selected_button.configure(state=state)
@@ -857,6 +878,7 @@ class TikTokScraperApp: # Renamed class
         self.clear_browser_data_button.configure(state=state) # Control new button
 
     def _refresh_table_display(self):
+        if not self.root.winfo_exists(): return # Safety check
         for item in self.tree.get_children():
             self.tree.delete(item)
         
@@ -881,6 +903,7 @@ class TikTokScraperApp: # Renamed class
 
 
     def export_to_csv(self):
+        if not self.root.winfo_exists(): return # Safety check
         if not self.scraped_data_for_table:
             messagebox.showinfo("No Data", "There is no data to export.", parent=self.root)
             return
@@ -919,6 +942,7 @@ class TikTokScraperApp: # Renamed class
 
     def _show_context_menu(self, event):
         """Displays the right-click context menu for the Treeview."""
+        if not self.root.winfo_exists(): return # Safety check
         menu = tk.Menu(self.tree, tearoff=0)
         menu.add_command(label="Select All", command=self._select_all_items)
         try:
@@ -928,10 +952,12 @@ class TikTokScraperApp: # Renamed class
 
     def _select_all_items(self):
         """Selects all items currently visible in the Treeview."""
+        if not self.root.winfo_exists(): return # Safety check
         for item in self.tree.get_children():
             self.tree.selection_add(item)
 
     def _sort_treeview(self, col):
+        if not self.root.winfo_exists(): return # Safety check
         if self.sort_column == col:
             self.sort_reverse = not self.sort_reverse
         else:
